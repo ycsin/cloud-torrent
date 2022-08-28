@@ -1,5 +1,4 @@
-FROM alpine:edge
-LABEL maintainer="dev@jpillora.com"
+FROM arm64v8/alpine:edge
 # prepare go env
 ENV GOPATH /go
 ENV NAME cloud-torrent
@@ -10,6 +9,10 @@ ENV GOLANG_SRC_URL https://golang.org/dl/go$GOLANG_VERSION.src.tar.gz
 ENV GOLANG_SRC_SHA256 a84afc9dc7d64fe0fa84d4d735e2ece23831a22117b50dafc75c1484f1cb550e
 ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
 ENV CGO_ENABLED 0
+# To copile arm64 version of GO
+ENV GOARCH arm64
+# To fix the go.mod missing issue
+ENV GO111MODULE auto
 # in one step (to prevent creating superfluous layers):
 # 1. fetch and install temporary build programs,
 # 2. build cloud-torrent alpine binary
@@ -23,10 +26,14 @@ RUN set -ex \
 	musl-dev \
 	openssl \
 	git \
+	# To fix missing `patch`
+	patch \
 	go \
 	curl \
 	&& curl -s https://raw.githubusercontent.com/docker-library/golang/221ee92559f2963c1fe55646d3516f5b8f4c91a4/1.9/alpine3.6/no-pic.patch -o /no-pic.patch \
 	&& cat /no-pic.patch \
+	&& export GOARCH=arm64 \
+	&& export GOROOT_BOOTSTRAP=/usr/local/go \
 	&& export GOROOT_BOOTSTRAP="$(go env GOROOT)" \
 	&& wget -q "$GOLANG_SRC_URL" -O golang.tar.gz \
 	&& echo "$GOLANG_SRC_SHA256  golang.tar.gz" | sha256sum -c - \
